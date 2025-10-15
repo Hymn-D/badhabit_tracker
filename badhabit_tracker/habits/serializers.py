@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Habit, HabitLog, ReplacementPlan 
+from .models import Habit, HabitLog, ReplacementPlan, Achievement, ActivityShare
 
 User = get_user_model()
 
@@ -46,3 +46,26 @@ class HabitSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "name", "category", "description", "target_frequency", "created_at", "is_active",
                   "logs", "plans", "reminders", "journal_entries")
         read_only_fields = ("id", "user", "created_at", "logs", "plans", "reminders", "journal_entries")
+
+class AchievementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Achievement
+        fields = ("id", "user", "name", "description", "earned_at")
+        read_only_fields = ("id", "user", "earned_at")
+
+class ActivityShareSerializer(serializers.ModelSerializer):
+    user_from = serializers.ReadOnlyField(source='user_from.id')
+    user_from_username = serializers.ReadOnlyField(source='user_from.username')
+    user_to_username = serializers.ReadOnlyField(source='user_to.username')
+
+    class Meta:
+        model = ActivityShare
+        fields = ("id", "user_from", "user_from_username", "user_to", "user_to_username",
+                  "achievement", "habitlog", "message", "is_public", "external_url", "created_at")
+        read_only_fields = ("id", "user_from", "created_at")
+
+class LeaderboardUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    username = serializers.CharField()
+    total_occurrences = serializers.IntegerField()
+    current_streak = serializers.IntegerField(required=False)

@@ -57,3 +57,27 @@ class ReplacementPlan(models.Model):
 
     def __str__(self):
         return f"{self.activity} for {self.habit.name}"
+
+
+class Achievement(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, related_name="achievements", on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    earned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "name")
+        ordering = ("-earned_at",)
+
+    def __str__(self):
+        return f"{self.name} ({self.user})"
+    
+class ActivityShare(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="shared_activities")
+    achievement = models.ForeignKey(Achievement, on_delete=models.CASCADE, related_name="shares", null=True, blank=True)
+    shared_to = models.CharField(max_length=255, null=True, blank=True)  # e.g., "Twitter", "Instagram", or a username
+    shared_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} shared {self.achievement.name if self.achievement else 'an activity'}"

@@ -5,13 +5,14 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from .models import Habit, HabitLog, ReplacementPlan
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.models import User
+from .models import Habit, HabitLog, ReplacementPlan, Achievement, ActivityShare
 from .serializers import (
-    HabitSerializer, HabitLogSerializer, ReplacementPlanSerializer,   RegisterSerializer, UserSerializer
+    HabitSerializer, HabitLogSerializer, ReplacementPlanSerializer,RegisterSerializer, UserSerializer, AchievementSerializer, ActivityShareSerializer
 )
 from datetime import timedelta, date
-from .utils import today_utc_date, start_of_week, start_of_month
+from .utils import today_utc_date, start_of_week, start_of_month, daterange, compute_streaks, safe_percent_change
 
 
 class RegisterView(generics.CreateAPIView):
@@ -231,3 +232,176 @@ class UserHabitsSummaryView(generics.GenericAPIView):
                 "last_log_date": last_log_date,
             })
         return Response({"habits": summary})
+
+
+class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = AchievementSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        return Achievement.objects.filter(user=self.request.user)
+    
+class ReportsSummaryView(generics.GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+        today = today_utc_date()
+        week_start = start_of_week(today)
+        prev_week_start = week_start - timedelta(days=7)
+        prev_week_end = week_start - timedelta(days=1)
+        month_start = start_of_month(today)
+        # prev month start naive:
+        if month_start.month == 1:
+            prev_month_start = month_start.replace(year=month_start.year-1, month=12)
+        else:
+            prev_month_start = month_start.replace(month=month_start.month-1)
+        prev_month_end = month_start - timedelta(days=1)
+
+        habits = Habit.objects.filter(user=user).order_by('-created_at')
+        out = []
+        for h in habits:
+            logs = h.logs.all()
+            occ_map = {}
+            for l in logs:
+                occ_map[l.log_date] = occ_map.get(l.log_date, 0) + (l.occurrences or 0)
+
+            today_count = occ_map.get(today, 0)
+            week_count = sum(v for d, v in occ_map.items() if d >= week_start and d <= today)
+            prev_week_count = sum(v for d, v in occ_map.items() if d >= prev_week_start and d <= prev_week_end)
+            month_count = sum(v for d, v in occ_map.items() if d >= month_start and d <= today)
+            prev_month_count = sum(v for d, v in occ_map.items() if d >= prev_month_start and d <= prev_month_end)
+
+            total = sum(occ_map.values())
+            dates_with = {d for d, v in occ_map.items() if v > 0}
+            current_streak, longest_streak = compute_streaks(dates_with, upto_date=today)
+
+            out.append({
+                "habit_id": h.id,
+                "name": h.name,
+                "today_count": today_count,
+                "week_count": week_count,
+                "week_percent_change": safe_percent_change(week_count, prev_week_count),
+                "month_count": month_count,
+                "month_percent_change": safe_percent_change(month_count, prev_month_count),
+                "total_occurrences": total,
+                "current_streak": current_streak,
+                "longest_streak": longest_streak,
+            })
+        return Response({"habits": out})
+
+# Habit analytics – detailed for single habit (last 30 days, streaks)
+class HabitAnalyticsView(generics.GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, habit_id):
+        user = request.user
+        habit = Habit.objects.filter(id=habit_id, user=user).first()
+        if not habit:
+            return Response({"detail": "Not found"}, status=404)
+
+        today = today_utc_date()
+        start_30 = today - timedelta(days=29)
+        earliest = today - timedelta(days=365)
+        logs = habit.logs.filter(log_date__gte=earliest).order_by('log_date')
+
+        occ_map = {}
+        for l in logs:
+            occ_map[l.log_date] = occ_map.get(l.log_date, 0) + (l.occurrences or 0)
+
+        last_30 = [{"date": d.isoformat(), "occurrences": occ_map.get(d, 0)} for d in daterange(start_30, today)]
+        dates_with = {d for d, v in occ_map.items() if v > 0}
+        current_streak, longest_streak = compute_streaks(dates_with, upto_date=today)
+
+        # weekly/monthly counts
+        week_start = start_of_week(today)
+        prev_week_start = week_start - timedelta(days=7)
+        prev_week_end = week_start - timedelta(days=1)
+
+        week_count = sum(v for d, v in occ_map.items() if d >= week_start and d <= today)
+        prev_week_count = sum(v for d, v in occ_map.items() if d >= prev_week_start and d <= prev_week_end)
+        month_start = start_of_month(today)
+        if month_start.month == 1:
+            prev_month_start = month_start.replace(year=month_start.year-1, month=12)
+        else:
+            prev_month_start = month_start.replace(month=month_start.month-1)
+        prev_month_end = month_start - timedelta(days=1)
+        month_count = sum(v for d, v in occ_map.items() if d >= month_start and d <= today)
+        prev_month_count = sum(v for d, v in occ_map.items() if d >= prev_month_start and d <= prev_month_end)
+
+        data = {
+            "habit_id": habit.id,
+            "name": habit.name,
+            "last_30_days": last_30,
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+            "week_count": week_count,
+            "week_percent_change": safe_percent_change(week_count, prev_week_count),
+            "month_count": month_count,
+            "month_percent_change": safe_percent_change(month_count, prev_month_count),
+            "total_occurrences": sum(occ_map.values()),
+        }
+        return Response(data)
+
+# Share an achievement (public or to user)
+class AchievementShareView(generics.CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ActivityShareSerializer
+
+    def create(self, request, *args, **kwargs):
+        achievement_id = kwargs.get("achievement_id")
+        achievement = Achievement.objects.filter(id=achievement_id, user=request.user).first()
+        if not achievement:
+            return Response({"detail": "Achievement not found or not owned"}, status=404)
+        data = request.data.copy()
+        data["achievement"] = achievement.id
+        data["user_from"] = request.user.id
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user_from=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# Generic activity share (can share habitlog or custom message)
+class ActivityShareCreateView(generics.CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ActivityShareSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(user_from=self.request.user)
+
+# Leaderboard: Top users by total occurrences
+class LeaderboardTopUsersView(generics.GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        limit = int(request.query_params.get("limit", 10))
+        # annotate users with total occurrences across all their habits
+        users = User.objects.all()
+        leaderboard = []
+        for u in users:
+            total = HabitLog.objects.filter(habit__user=u).aggregate(total=Sum('occurrences'))['total'] or 0
+            leaderboard.append({"user_id": u.id, "username": u.username, "total_occurrences": total})
+        leaderboard.sort(key=lambda x: x["total_occurrences"], reverse=True)
+        return Response({"leaderboard": leaderboard[:limit]})
+
+# Leaderboard: Top current streaks (users)
+class LeaderboardTopStreaksView(generics.GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        limit = int(request.query_params.get("limit", 10))
+        today = today_utc_date()
+        users = User.objects.all()
+        out = []
+        for u in users:
+            # compute user's best current streak across their habits
+            user_habits = Habit.objects.filter(user=u)
+            best_current = 0
+            for h in user_habits:
+                dates_with = {l.log_date for l in h.logs.all() if (l.occurrences or 0) > 0}
+                current_streak, _ = compute_streaks(dates_with, upto_date=today)
+                if current_streak > best_current:
+                    best_current = current_streak
+            out.append({"user_id": u.id, "username": u.username, "current_streak": best_current})
+        out.sort(key=lambda x: x["current_streak"], reverse=True)
+        return Response({"leaderboard": out[:limit]})

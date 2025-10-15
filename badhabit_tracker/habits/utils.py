@@ -1,6 +1,7 @@
 # habits/utils.py
 from datetime import date, datetime, timedelta
 from django.utils import timezone
+from typing import Iterable, Set, Tuple
 
 def today_utc_date():
     # return today's date in UTC (date object)
@@ -10,8 +11,19 @@ def start_of_week(dt: date):
     # ISO week starts Monday; return Monday of dt's week
     return dt - timedelta(days=dt.weekday())
 
+def end_of_week(dt: date) -> date:
+    return start_of_week(dt) + timedelta(days=6)
+
 def start_of_month(dt: date):
     return dt.replace(day=1)
+
+
+def end_of_month(dt: date) -> date:
+    if dt.month == 12:
+        next_month = dt.replace(year=dt.year + 1, month=1, day=1)
+    else:
+        next_month = dt.replace(month=dt.month + 1, day=1)
+    return next_month - timedelta(days=1)
 
 def daterange(start_date: date, end_date: date):
     # yields date objects from start_date to end_date inclusive
@@ -55,3 +67,11 @@ def compute_streaks(dates_with_logs_set, upto_date=None):
         longest = run
 
     return current, longest
+
+
+def safe_percent_change(current: float, previous: float) -> float:
+    if previous == 0:
+        if current == 0:
+            return 0.0
+        return 100.0
+    return round(((current - previous) / previous) * 100.0, 2)

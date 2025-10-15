@@ -282,3 +282,247 @@ Habit Tracking Project — Django REST API
 Would you like me to generate a **`README.md` file** (so you can download and drop it into your project folder directly)?  
 I can create and attach it for you automatically.
 ```
+Absolutely ✅ — here’s your **Week 2 README.md** for the project **“Bad Habit Tracker API”**.
+
+This file continues from your **Week 1** setup and documents the **logging system** and **replacement plan** features you added this week. It’s written professionally and formatted for GitHub.
+
+---
+
+````markdown
+# 🧠 Bad Habit Tracker API — Week 2
+
+This week builds on the Week 1 foundation by adding a **habit logging system** and **replacement plans** that help users monitor, manage, and replace bad habits with positive ones.
+
+---
+
+## 🎯 Week 2 Goals
+
+- ✅ Allow users to **log habit occurrences** (daily, weekly, monthly)
+- ✅ Compute and summarize **habit frequency** over time
+- ✅ Add and manage **replacement plans** for each habit
+- ✅ Display logs and replacement activities via API endpoints
+
+---
+
+## 🧩 Features Added This Week
+
+### 🔹 Habit Logging
+Users can record when they perform or avoid a habit.
+- Track daily, weekly, and monthly progress.
+- Prevent duplicate logs per day.
+- Calculate completion streaks or frequencies.
+
+### 🔹 Replacement Plans
+Users can define alternative activities to replace bad habits.
+- Each plan belongs to a specific habit.
+- Encourages substitution behavior to reduce bad habit recurrence.
+
+---
+
+## ⚙️ Setup Instructions
+
+If you already completed Week 1, your environment is ready.  
+Otherwise, follow the quick setup below 👇
+
+### 1️⃣ Activate your virtual environment
+```bash
+venv\Scripts\activate     # Windows
+# or
+source venv/bin/activate  # macOS/Linux
+````
+
+### 2️⃣ Install dependencies
+
+```bash
+pip install django djangorestframework djangorestframework-simplejwt
+```
+
+### 3️⃣ Apply migrations
+
+Make sure the new models (HabitLog, ReplacementPlan) are registered.
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 4️⃣ Run the development server
+
+```bash
+python manage.py runserver
+```
+
+---
+
+## 🧱 Core Models (Week 2 Additions)
+
+### **HabitLog**
+
+Tracks when a user performs a habit.
+
+| Field         | Type       | Description                  |
+| ------------- | ---------- | ---------------------------- |
+| `id`          | INT (PK)   | Unique ID                    |
+| `habit`       | FK → Habit | The related habit            |
+| `log_date`    | DATE       | When the habit was performed |
+| `occurrences` | INT        | How many times that day      |
+| `note`        | TEXT       | Optional reflection          |
+| `created_at`  | TIMESTAMP  | When log was created         |
+
+🔸 **Constraint:** Unique per `(habit, log_date)`
+
+---
+
+### **ReplacementPlan**
+
+Represents positive activities to replace bad habits.
+
+| Field         | Type         | Description            |
+| ------------- | ------------ | ---------------------- |
+| `id`          | INT (PK)     | Unique ID              |
+| `habit`       | FK → Habit   | Linked habit           |
+| `activity`    | VARCHAR(255) | Activity name          |
+| `description` | TEXT         | Description (optional) |
+| `created_at`  | TIMESTAMP    | Auto-created           |
+
+🔸 **Constraint:** Unique per `(habit, activity)`
+
+---
+
+## 🌐 API Endpoints
+
+### 🧾 Habit Logs
+
+| Method   | Endpoint                                | Description               |
+| -------- | --------------------------------------- | ------------------------- |
+| `GET`    | `/api/habits/{habit_id}/logs/`          | List all logs for a habit |
+| `POST`   | `/api/habits/{habit_id}/logs/`          | Create new log entry      |
+| `PUT`    | `/api/habits/{habit_id}/logs/{log_id}/` | Update an existing log    |
+| `DELETE` | `/api/habits/{habit_id}/logs/{log_id}/` | Delete a log              |
+
+**Example Request (POST):**
+
+```json
+{
+  "log_date": "2025-10-15",
+  "occurrences": 1,
+  "note": "Did not bite nails today!"
+}
+```
+
+---
+
+### 🔄 Replacement Plans
+
+| Method   | Endpoint                                  | Description                    |
+| -------- | ----------------------------------------- | ------------------------------ |
+| `GET`    | `/api/habits/{habit_id}/plans/`           | List replacement activities    |
+| `POST`   | `/api/habits/{habit_id}/plans/`           | Add a new replacement activity |
+| `PUT`    | `/api/habits/{habit_id}/plans/{plan_id}/` | Update a replacement activity  |
+| `DELETE` | `/api/habits/{habit_id}/plans/{plan_id}/` | Delete a replacement plan      |
+
+**Example Request (POST):**
+
+```json
+{
+  "activity": "Chewing gum",
+  "description": "When I feel like biting my nails, I'll chew sugar-free gum."
+}
+```
+
+---
+
+## 📊 Frequency Summary Endpoint
+
+**Endpoint:**
+`GET /api/habits/{habit_id}/summary/`
+
+**Description:**
+Returns how often a habit has been logged over the current **day**, **week**, and **month**.
+
+**Example Response:**
+
+```json
+{
+  "habit": "Biting nails",
+  "today_count": 1,
+  "week_count": 4,
+  "month_count": 12
+}
+```
+
+---
+
+## 📂 Updated Project Structure
+
+```
+habits/
+├── models.py           # Habit, HabitLog, ReplacementPlan models
+├── serializers.py      # DRF serializers for each model
+├── views.py            # API endpoints (CRUD + summary)
+├── urls.py             # Routes for habits, logs, and plans
+├── utils.py            # Helper functions (date calculations)
+└── permissions.py      # Auth rules
+```
+
+---
+
+## 🧮 Example Utility Functions (utils.py)
+
+```python
+from datetime import date, timedelta
+
+def today_utc_date():
+    return date.today()
+
+def start_of_week(today):
+    return today - timedelta(days=today.weekday())
+
+def start_of_month(today):
+    return today.replace(day=1)
+```
+
+---
+
+## 🧪 Testing Endpoints (with Postman)
+
+1. **Authenticate**
+   `POST /api/auth/login/`
+   → Copy the access token.
+
+2. **Add Header to Requests**
+
+   ```
+   Authorization: Bearer <your_access_token>
+   ```
+
+3. **Create a Habit**, then:
+
+   * Log it: `POST /api/habits/{id}/logs/`
+   * Add a replacement plan: `POST /api/habits/{id}/plans/`
+   * View summary: `GET /api/habits/{id}/summary/`
+
+---
+
+## 🗓️ Next Steps (Week 3 Preview)
+
+* Build **reminder system** (notifications)
+* Add **journal entries** for reflection
+* Generate **weekly progress reports**
+* Introduce **achievements and streak tracking**
+
+---
+
+## 👩‍💻 Author
+
+**Junia**
+Bad Habit Tracker — Django REST API Project
+© 2025 All Rights Reserved
+
+```
+
+---
+
+Would you like me to **generate and attach this README.md file** directly (so you can drop it into your project folder)?  
+I can create it as a downloadable `.md` file for you.
+```
