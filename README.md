@@ -147,7 +147,14 @@ Enable social sharing of achievements and leaderboard stats.
 Implement AI habit suggestions based on logged data.
 Add data visualization with Chart.js for reports.
 
-
-👩🏽‍💻 Author
+Author
 Esther
+Django Developer | Habit Tracking Enthusiast
+Built with ❤️ using Django and a passion for positive change.
+
+
+
+
+
+
 Built with ❤️ using Django and a passion for positive change.
