@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h2>Habit Reports</h2>
+
+{% if reports %}
+<table>
+    <tr>
+        <th>Habit</th>
+        <th>Current Streak</th>
+        <th>Weekly Progress</th>
+        <th>Monthly Progress</th>
+    </tr>
+    {% for report in reports %}
+    <tr>
+        <td>{{ report.habit.name }}</td>
+        <td>{{ report.streak }} days</td>
+        <td>{{ report.weekly_count }}</td>
+        <td>{{ report.monthly_count }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No reports available yet. Start tracking your habits!</p>
+{% endif %}
+{% endblock %}

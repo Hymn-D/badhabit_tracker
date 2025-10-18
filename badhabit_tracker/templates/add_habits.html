@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Add Habit</h2>
+<form method="post">
+    {% csrf_token %}
+    <label>Name:</label><input type="text" name="name"><br>
+    <label>Description:</label><input type="text" name="description"><br>
+    <label>Frequency:</label>
+    <select name="frequency">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+    </select><br>
+    <button type="submit">Add Habit</button>
+</form>
+{% endblock %}

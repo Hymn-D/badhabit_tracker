@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Welcome, {{ user.username }}</h2>
+<h3>Your Habits</h3>
+<ul>
+    {% for habit in habits %}
+    <li>{{ habit.name }} - {{ habit.frequency }}</li>
+    {% empty %}
+    <li>No habits yet.</li>
+    {% endfor %}
+</ul>
+
+<h3>Your Achievements</h3>
+<ul>
+    {% for achievement in achievements %}
+    <li>{{ achievement.name }} - {{ achievement.description }}</li>
+    {% empty %}
+    <li>No achievements yet.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

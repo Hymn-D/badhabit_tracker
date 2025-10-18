@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Achievements{% endblock %}
+{% block content %}
+<h2>Achievements</h2>
+
+{% if achievements %}
+<div class="badge-container">
+    {% for a in achievements %}
+    <div class="badge">
+        🏅 <strong>{{ a.name }}</strong><br>
+        <small>{{ a.description }}</small><br>
+        <em>Earned at: {{ a.earned_at|date:"Y-m-d" }}</em>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p>No achievements earned yet. Keep going!</p>
+{% endif %}
+{% endblock %}

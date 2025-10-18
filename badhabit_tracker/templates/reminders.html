@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Reminders</h2>
+
+<!-- Add new reminder -->
+<form method="post">
+    {% csrf_token %}
+    <label for="habit">Select Habit:</label>
+    <select name="habit" id="habit">
+        {% for habit in habits %}
+        <option value="{{ habit.id }}">{{ habit.name }}</option>
+        {% endfor %}
+    </select><br>
+
+    <label for="reminder_time">Reminder Time:</label>
+    <input type="time" name="reminder_time" id="reminder_time" required><br>
+
+    <label for="message">Reminder Message:</label>
+    <input type="text" name="message" id="message" placeholder="E.g., Stay strong! Avoid smoking today." required><br>
+
+    <button type="submit">Add Reminder</button>
+</form>
+
+<hr>
+
+
+<h3>Your Active Reminders</h3>
+{% if reminders %}
+<table border="1" cellpadding="8">
+    <tr>
+        <th>Habit</th>
+        <th>Time</th>
+        <th>Message</th>
+        <th>Created</th>
+        <th>Actions</th>
+    </tr>
+    {% for reminder in reminders %}
+    <tr>
+        <td>{{ reminder.habit.name }}</td>
+        <td>{{ reminder.reminder_time }}</td>
+        <td>{{ reminder.message }}</td>
+        <td>{{ reminder.created_at|date:"Y-m-d H:i" }}</td>
+        <td>
+            <a href="{% url 'delete_reminder' reminder.id %}"
+                onclick="return confirm('Delete this reminder?');">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>You have no reminders yet.</p>
+{% endif %}
+{% endblock %}
