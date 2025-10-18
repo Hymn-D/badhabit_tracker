@@ -5,7 +5,7 @@ from .views import (
     HabitViewSet, HabitLogViewSet, ReplacementPlanViewSet,
     RegisterView, logout_view, ReportsView, UserHabitsSummaryView, AchievementViewSet, ReportsSummaryView, HabitAnalyticsView,
     AchievementShareView, ActivityShareCreateView,
-    LeaderboardTopUsersView, LeaderboardTopStreaksView
+    LeaderboardTopUsersView, LeaderboardTopStreaksView, ReminderViewSet, JournalEntryViewSet, BadgeViewSet, UserBadgeViewSet
 
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -15,6 +15,10 @@ router.register(r"habits", HabitViewSet, basename="habit")
 router.register(r"logs", HabitLogViewSet, basename="habitlog")
 router.register(r"plans", ReplacementPlanViewSet, basename="replacementplan")
 router.register(r"achievements", AchievementViewSet, basename="achievement")
+router.register(r'reminders', ReminderViewSet, basename='reminders')
+router.register(r'journal', JournalEntryViewSet, basename='journal')
+router.register(r'badges', BadgeViewSet, basename='badges')
+router.register(r'user-badges', UserBadgeViewSet, basename='user-badges')
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),

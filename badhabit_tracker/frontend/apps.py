@@ -1,8 +1,6 @@
 from django.apps import AppConfig
 
 
-class HabitsConfig(AppConfig):
+class FrontendConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'habits'
-def ready(self):
-    import habits.signals
+    name = 'frontend'

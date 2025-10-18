@@ -6,9 +6,12 @@ from .models import (
     ReplacementPlan,
     Achievement,
     ActivityShare,
+    Reminder, 
+    JournalEntry, 
+    Badge, 
+    UserBadge
 )
 
-# Customize display in the admin panel for each model
 @admin.register(Habit)
 class HabitAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "name", "category", "target_frequency", "created_at")
@@ -43,3 +46,21 @@ class ActivityShareAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "achievement", "shared_to", "shared_at")
     search_fields = ("user__username", "achievement__name", "shared_to")
     ordering = ("-shared_at",)
+
+@admin.register(Reminder)
+class ReminderAdmin(admin.ModelAdmin):
+    list_display = ('habit', 'reminder_time', 'message', 'created_at')
+    list_filter = ('reminder_time',)
+
+@admin.register(JournalEntry)
+class JournalEntryAdmin(admin.ModelAdmin):
+    list_display = ('id','user', 'habit', 'mood', 'created_at')
+    search_fields = ('title', 'entry', 'user__username')
+
+@admin.register(Badge)
+class BadgeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+
+@admin.register(UserBadge)
+class UserBadgeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'badge', 'awarded_at')

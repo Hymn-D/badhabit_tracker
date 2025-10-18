@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Habit, HabitLog, ReplacementPlan, Achievement, ActivityShare
+from .models import Habit, HabitLog, Reminder, JournalEntry, ReplacementPlan, Achievement, ActivityShare, Badge, UserBadge
 
 User = get_user_model()
 
@@ -38,9 +38,24 @@ class ReplacementPlanSerializer(serializers.ModelSerializer):
         fields = ("id", "habit", "activity", "description", "created_at")
         read_only_fields = ("created_at", "id", "habit")
 
+class ReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reminder
+        fields = ("id", "habit", "reminder_time", "message", "created_at")
+        read_only_fields = ("created_at", "id", "habit")
+
+
+class JournalEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JournalEntry
+        fields = ("id", "user", "habit", "entry", "mood", "created_at")
+        read_only_fields = ("created_at", "id", "user")
+
 class HabitSerializer(serializers.ModelSerializer):
     logs = HabitLogSerializer(many=True, read_only=True)
     plans = ReplacementPlanSerializer(many=True, read_only=True)
+    reminders = ReminderSerializer(many=True, read_only=True)
+    journal_entries = JournalEntrySerializer(many=True, read_only=True)
     class Meta:
         model = Habit
         fields = ("id", "user", "name", "category", "description", "target_frequency", "created_at", "is_active",
@@ -69,3 +84,17 @@ class LeaderboardUserSerializer(serializers.Serializer):
     username = serializers.CharField()
     total_occurrences = serializers.IntegerField()
     current_streak = serializers.IntegerField(required=False)
+
+class BadgeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Badge
+        fields = ['id', 'name', 'description', 'icon']
+
+
+class UserBadgeSerializer(serializers.ModelSerializer):
+    badge = BadgeSerializer(read_only=True)
+
+    class Meta:
+        model = UserBadge
+        fields = ['id', 'user', 'badge', 'awarded_at']
+        read_only_fields = ['user', 'awarded_at']

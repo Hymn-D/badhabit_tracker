@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.db.models import Count, Sum, Max
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -7,13 +7,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
-from .models import Habit, HabitLog, ReplacementPlan, Achievement, ActivityShare
+from .models import Habit, HabitLog, ReplacementPlan, Achievement, ActivityShare, Reminder, JournalEntry, Badge, UserBadge
 from .serializers import (
-    HabitSerializer, HabitLogSerializer, ReplacementPlanSerializer,RegisterSerializer, UserSerializer, AchievementSerializer, ActivityShareSerializer
+    HabitSerializer, HabitLogSerializer, ReplacementPlanSerializer,RegisterSerializer, UserSerializer, AchievementSerializer, ActivityShareSerializer, ReminderSerializer, JournalEntrySerializer,
+        BadgeSerializer, UserBadgeSerializer
 )
 from datetime import timedelta, date
 from .utils import today_utc_date, start_of_week, start_of_month, daterange, compute_streaks, safe_percent_change
-
+from .tasks import send_sms_reminder_task
 
 class RegisterView(generics.CreateAPIView):
     permission_classes = (AllowAny,)
@@ -405,3 +406,41 @@ class LeaderboardTopStreaksView(generics.GenericAPIView):
             out.append({"user_id": u.id, "username": u.username, "current_streak": best_current})
         out.sort(key=lambda x: x["current_streak"], reverse=True)
         return Response({"leaderboard": out[:limit]})
+    
+class ReminderViewSet(viewsets.ModelViewSet):
+    serializer_class = ReminderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Reminder.objects.filter(habit__user=self.request.user)
+
+    def perform_create(self, serializer):
+        reminder = serializer.save()
+        # Send SMS asynchronously via Celery
+        send_sms_reminder_task.delay(reminder.habit.user.username, reminder.message)
+        return reminder
+
+
+class JournalEntryViewSet(viewsets.ModelViewSet):
+    serializer_class = JournalEntrySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return JournalEntry.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class BadgeViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = BadgeSerializer
+    queryset = Badge.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class UserBadgeViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = UserBadgeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return UserBadge.objects.filter(user=self.request.user)
