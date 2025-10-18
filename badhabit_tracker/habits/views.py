@@ -98,50 +98,33 @@ class HabitViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'], url_path='report', permission_classes=[permissions.IsAuthenticated])
     def report(self, request, pk=None):
-        """
-        Returns aggregates & streaks for the habit:
-        - daily_count (today)
-        - weekly_count (current week)
-        - monthly_count (current month)
-        - last_30_days: list of {date, occurrences}
-        - avg_daily_last_30: float
-        - current_streak, longest_streak (in days)
-        - total_logs
-        """
         habit = self.get_object()
         today = today_utc_date()
 
-        # ranges
-        start_30 = today - timedelta(days=29)  # last 30 days includes today
+        start_30 = today - timedelta(days=29)
         week_start = start_of_week(today)
         month_start = start_of_month(today)
 
-        # Fetch logs in relevant range (past 365 days to compute streaks safely)
         earliest_needed = today - timedelta(days=365)
         logs_qs = HabitLog.objects.filter(habit=habit, log_date__gte=earliest_needed).order_by('log_date')
 
-        # Build a map date -> occurrences (sum in case multiple entries, though we enforce uniqueness per day)
         occurrences_by_date = {}
         for log in logs_qs:
             d = log.log_date
             occurrences_by_date[d] = occurrences_by_date.get(d, 0) + (log.occurrences or 0)
 
-        # Totals
         daily_count = occurrences_by_date.get(today, 0)
         weekly_count = sum(v for k, v in occurrences_by_date.items() if k >= week_start and k <= today)
         monthly_count = sum(v for k, v in occurrences_by_date.items() if k >= month_start and k <= today)
         total_logs = sum(occurrences_by_date.values())
 
-        # last 30 days series
         last_30_series = []
         for d in daterange(start_30, today):
             last_30_series.append({"date": d.isoformat(), "occurrences": occurrences_by_date.get(d, 0)})
 
-        # average daily in last 30 days
         total_last_30 = sum(item["occurrences"] for item in last_30_series)
         avg_daily_last_30 = total_last_30 / 30.0
 
-        # streaks: compute set of dates where occurrences > 0
         dates_with_logs = {d for d, v in occurrences_by_date.items() if v > 0}
         current_streak, longest_streak = compute_streaks(dates_with_logs, upto_date=today)
 
@@ -160,7 +143,6 @@ class HabitViewSet(viewsets.ModelViewSet):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# Small viewsets for logs/plans/reminders so we can update/delete specific nested items
 class HabitLogViewSet(viewsets.ModelViewSet):
     serializer_class = HabitLogSerializer
     permission_classes = (permissions.IsAuthenticated,)
@@ -168,7 +150,6 @@ class HabitLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return HabitLog.objects.filter(habit__user=self.request.user)
 
-    # override perform_create to ensure habit belongs to user when creating directly
     def perform_create(self, serializer):
         habit = serializer.validated_data.get('habit')
         if habit.user != self.request.user:
@@ -185,15 +166,11 @@ class ReplacementPlanViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def logout_view(request):
-    """
-    Expects {"refresh": "<refresh_token>"} to blacklist (optional).
-    If you do not configure token blacklist, client can just discard tokens.
-    """
     try:
         refresh_token = request.data.get("refresh", None)
         if refresh_token:
             token = RefreshToken(refresh_token)
-            token.blacklist()  # requires token_blacklist app
+            token.blacklist()  
     except Exception:
         pass
     return Response({"detail": "Logout successful"}, status=status.HTTP_200_OK)
@@ -203,7 +180,6 @@ class ReportsView(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
-        # Summary across all user's habits: count habits, total logs, last log date per habit
         habits = Habit.objects.filter(user=request.user).annotate(
             total_logs=Count("logs"),
             last_log=Max("logs__log_date")
@@ -221,7 +197,6 @@ class UserHabitsSummaryView(generics.GenericAPIView):
         habits = Habit.objects.filter(user=request.user)
         summary = []
         for habit in habits:
-            # lightweight aggregates: total logs and last log date
             total_logs = HabitLog.objects.filter(habit=habit).aggregate(total=Sum('occurrences'))['total'] or 0
             last_log = HabitLog.objects.filter(habit=habit).order_by('-log_date').first()
             last_log_date = last_log.log_date.isoformat() if last_log else None
@@ -252,7 +227,6 @@ class ReportsSummaryView(generics.GenericAPIView):
         prev_week_start = week_start - timedelta(days=7)
         prev_week_end = week_start - timedelta(days=1)
         month_start = start_of_month(today)
-        # prev month start naive:
         if month_start.month == 1:
             prev_month_start = month_start.replace(year=month_start.year-1, month=12)
         else:
@@ -291,7 +265,6 @@ class ReportsSummaryView(generics.GenericAPIView):
             })
         return Response({"habits": out})
 
-# Habit analytics – detailed for single habit (last 30 days, streaks)
 class HabitAnalyticsView(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
@@ -314,7 +287,6 @@ class HabitAnalyticsView(generics.GenericAPIView):
         dates_with = {d for d, v in occ_map.items() if v > 0}
         current_streak, longest_streak = compute_streaks(dates_with, upto_date=today)
 
-        # weekly/monthly counts
         week_start = start_of_week(today)
         prev_week_start = week_start - timedelta(days=7)
         prev_week_end = week_start - timedelta(days=1)
@@ -344,7 +316,6 @@ class HabitAnalyticsView(generics.GenericAPIView):
         }
         return Response(data)
 
-# Share an achievement (public or to user)
 class AchievementShareView(generics.CreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ActivityShareSerializer
@@ -362,7 +333,6 @@ class AchievementShareView(generics.CreateAPIView):
         serializer.save(user_from=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# Generic activity share (can share habitlog or custom message)
 class ActivityShareCreateView(generics.CreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ActivityShareSerializer
@@ -370,13 +340,11 @@ class ActivityShareCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(user_from=self.request.user)
 
-# Leaderboard: Top users by total occurrences
 class LeaderboardTopUsersView(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
         limit = int(request.query_params.get("limit", 10))
-        # annotate users with total occurrences across all their habits
         users = User.objects.all()
         leaderboard = []
         for u in users:
@@ -385,7 +353,7 @@ class LeaderboardTopUsersView(generics.GenericAPIView):
         leaderboard.sort(key=lambda x: x["total_occurrences"], reverse=True)
         return Response({"leaderboard": leaderboard[:limit]})
 
-# Leaderboard: Top current streaks (users)
+
 class LeaderboardTopStreaksView(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
@@ -395,7 +363,6 @@ class LeaderboardTopStreaksView(generics.GenericAPIView):
         users = User.objects.all()
         out = []
         for u in users:
-            # compute user's best current streak across their habits
             user_habits = Habit.objects.filter(user=u)
             best_current = 0
             for h in user_habits:
@@ -416,7 +383,6 @@ class ReminderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         reminder = serializer.save()
-        # Send SMS asynchronously via Celery
         send_sms_reminder_task.delay(reminder.habit.user.username, reminder.message)
         return reminder
 
