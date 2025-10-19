@@ -65,7 +65,7 @@ This application helps users:
 - **Bootstrap** – responsive and elegant UI design.  
 - **SQLite3 ** – database for storing habits and logs.  
 - **JWT Authentication** – secure login and token management.  
-- **Heroku** – deployment platform for production hosting.
+- **python anywhere** – deployment platform for production hosting.
 - **Python 3.12+** Primary language used for development.
 - **VS Code** Development environment.
 ---
@@ -76,7 +76,7 @@ This application helps users:
 - **Bootstrap** and **JavaScript** enable quick, user-friendly frontend design.
 - **Celery** supports scheduling reminders asynchronously.
 - **PostgreSQL** ensures strong relational data integrity for complex habit tracking.
-- **Heroku/Render** allows smooth deployment with minimal setup effort.
+- **pythonanywhere** easy to deploy and use for projects.
 
 ---
 
@@ -131,6 +131,9 @@ Achievements appear on /achievements/ as you log consistently.
 
 --View Dashboard--
 The / homepage shows an overview of your habits, logs, and reminders.
+
+--View Dashboard--
+view dashboard on dashbaord/ 
 All endpoints require authentication using JWT tokens.
 ---
 
