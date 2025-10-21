@@ -1,6 +1,4 @@
  Bad Habit Tracker
-
-## Project Description
 The **Bad Habit Tracker** is a personal productivity and wellness web app built with Django 
 that helps users **identify, track, and replace bad habits** with positive alternatives.  
 It allows users to log habits, reflect through journals, set reminders, monitor frequency and 
