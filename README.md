@@ -1,4 +1,7 @@
- Bad Habit Tracker
+
+🧠 Bad Habit Tracker
+---
+
 The **Bad Habit Tracker** is a personal productivity and wellness web app built with Django 
 that helps users **identify, track, and replace bad habits** with positive alternatives.  
 It allows users to log habits, reflect through journals, set reminders, monitor frequency and 
@@ -52,7 +55,42 @@ This application helps users:
 - View leaderboards of top users by streaks or logged activities
 
 ---
-
+##folder structure
+badhabit_tracker/
+│
+├── badhabit_tracker/
+│   ├── settings.py
+│   ├── urls.py
+│
+├── habits/
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│
+├── frontend/
+│   ├── views.py
+│   ├── urls.py
+│
+├── templates/
+│   ├── base.html
+│   ├── dashboard.html
+│   ├── habits.html
+│   ├── reminders.html
+│   ├── reports.html
+│   ├── achievements.html
+│   ├── journal.html
+│   ├── login.html
+│   ├── register.html
+│
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   └── main.js
+│
+├── manage.py
+└── requirements.txt
+---
 
 ## Technologies Used
 - **Django** (Python) – backend web framework and ORM.  
