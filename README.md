@@ -185,15 +185,14 @@ Integrate Twilio SMS / email reminders for notifications.
 Enable social sharing of achievements and leaderboard stats.
 Implement AI habit suggestions based on logged data.
 Add data visualization with Chart.js for reports.
+---
+##Author
+-Esther
+-Django Developer | Habit Tracking Enthusiast
+-Built with ❤️ using Django and a passion for positive change.
 
-Author
-Esther
-Django Developer | Habit Tracking Enthusiast
-Built with ❤️ using Django and a passion for positive change.
-
-
-
-
-
-
-Built with ❤️ using Django and a passion for positive change.
+--
+## 🌍 Live Demo
+You can access the deployed app here:  
+👉 [https://Quebit.pythonanywhere.com](Quebit.pythonanywhere.com)
+--
